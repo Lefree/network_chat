@@ -11,8 +11,8 @@ public final class Utils {
     /**
      * По указанному пути создает файл, если такого нет
      * @param filePath путь до создаваемого файла
-     * @return 
-     * @throws IOException
+     * @return объект созданного файла
+     * @throws IOException исключени при создании файла
      */
     public static File createFile(String filePath) throws IOException {
         File file = new File(filePath);
@@ -36,9 +36,14 @@ public final class Utils {
         directory.mkdir();
     }
 
+    /**
+     * Метод записи логгирования информации в файл по указанному пути
+     * @param path путь до файла, содержащего логи
+     * @param msg сообщение, которое необходимо залогировать
+     */
     public static void logging(String path, String msg) {
         SimpleDateFormat formatter = new SimpleDateFormat("dd.MM.y HH:mm:ss");
-        String logMessage = formatter.format(new Date()) + "\n" + msg;
+        String logMessage = String.format("%s \n%s",formatter.format(new Date()), msg);
         try (FileOutputStream fos =
             new FileOutputStream(createFile(path), true)) {
                 fos.write(logMessage.getBytes());
