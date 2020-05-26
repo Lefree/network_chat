@@ -4,13 +4,9 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.nio.file.Paths;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 
-import static practice.java.utils.Utils.createFile;
+import static practice.java.utils.Utils.logging;
 
 public class ClientGUI extends JFrame implements ActionListener, Thread.UncaughtExceptionHandler {
     private static final String logPath = Paths.get(".").normalize().toAbsolutePath()
@@ -82,15 +78,8 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
         if (source == cbAlwaysOnTop) {
             setAlwaysOnTop(cbAlwaysOnTop.isSelected());
         } else if (source == tfMessage || source == btnSend) {
-            SimpleDateFormat formatter = new SimpleDateFormat("dd.MM.y HH:mm:ss");
-            String msg = formatter.format(new Date()) + " " + tfLogin.getText()+ ":"  + "\n" +
-                    tfMessage.getText() + "\n";
-            try (FileOutputStream fos =
-                    new FileOutputStream(createFile(logPath), true)) {
-                fos.write(msg.getBytes());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            String msg = tfLogin.getText()+ ":"  + "\n" + tfMessage.getText() + "\n";
+            logging(logPath, msg);
             log.append(msg);
             tfMessage.setText("");
         } else {
