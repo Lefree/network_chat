@@ -34,12 +34,12 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                new ClientGUI();
+                new Login();
             }
         });
     }
 
-    private ClientGUI() {
+    protected ClientGUI() {
         Thread.setDefaultUncaughtExceptionHandler(this);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -53,7 +53,11 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
         scrollUser.setPreferredSize(new Dimension(100, 0));
         cbAlwaysOnTop.addActionListener(this);
         btnSend.addActionListener(this);
+        btnSend.setBackground(Color.green);
+        btnLogin.setBackground(Color.GREEN);
+        btnDisconnect.setBackground(Color.RED);
         tfMessage.addActionListener(this);
+        btnDisconnect.addActionListener(this);
 
         panelTop.add(tfIPAddress);
         panelTop.add(tfPort);
@@ -82,7 +86,11 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
             logging(logPath, msg);
             log.append(msg);
             tfMessage.setText("");
-        } else {
+        } else if (source == btnDisconnect) {
+            setVisible(false);
+            Login.getFrames()[0].setVisible(true);
+        }
+        else {
             throw new RuntimeException("Unknown source: " + source);
         }
 
