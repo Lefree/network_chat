@@ -1,4 +1,6 @@
-package practice.java.server;
+package ru.chat.server.gui;
+
+import ru.chat.server.core.Server;
 
 import javax.swing.*;
 import java.awt.*;

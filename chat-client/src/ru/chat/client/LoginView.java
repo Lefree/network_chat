@@ -1,15 +1,14 @@
-package practice.java.client;
+package ru.chat.client;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-public class Login extends JFrame implements ActionListener, Thread.UncaughtExceptionHandler {
+public class LoginView extends JFrame implements ActionListener {
 
     private static final int WIDTH = 400;
     private static final int HEIGHT = 200;
-    public static boolean visible = true;
 
     private final JTextField tfIPAddress = new JTextField("127.0.0.1");
     private final JTextField tfPort = new JTextField("8000");
@@ -25,9 +24,11 @@ public class Login extends JFrame implements ActionListener, Thread.UncaughtExce
 
     private final JPanel panel = new JPanel(new GridLayout(4, 2));
     private final JPanel bottomPanel = new JPanel(new GridLayout(2, 1));
+    ChatListener listener;
 
-    protected Login() {
-        Thread.setDefaultUncaughtExceptionHandler(this);
+    protected LoginView(ChatListener listener) {
+        this.listener = listener;
+        Thread.setDefaultUncaughtExceptionHandler((Chat)listener);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setResizable(false);
         setSize(WIDTH, HEIGHT);
@@ -47,33 +48,20 @@ public class Login extends JFrame implements ActionListener, Thread.UncaughtExce
         bottomPanel.add(btnLogin);
         add(panel, BorderLayout.CENTER);
         add(bottomPanel, BorderLayout.SOUTH);
-        setVisible(visible);
-    }
-
-    @Override
-    public void uncaughtException(Thread thread, Throwable throwable) {
-        throwable.printStackTrace();
-        String msg;
-        StackTraceElement[] ste = throwable.getStackTrace();
-        msg = String.format("Exception in thread \"%s\" %s: %s\n\t at %s",
-                thread.getName(), throwable.getClass().getCanonicalName(),
-                throwable.getMessage(), ste[0]);
-        JOptionPane.showMessageDialog(this, msg, "Exception", JOptionPane.ERROR_MESSAGE);
-        System.exit(1);
+        setVisible(true);
     }
 
     @Override
     public void actionPerformed(ActionEvent actionEvent) {
         Object source = actionEvent.getSource();
         if (source == btnLogin) {
-            SwingUtilities.invokeLater(new Runnable() {
-                @Override
-                public void run() {
-                    setVisible(false);
-                    new ClientGUI();
-                }
-            });
-        } else {
+            listener.onAuthorize(tfIPAddress.getText(),
+                    Integer.parseInt(tfPort.getText()), tfLogin.getText());
+        }
+        else if (source == cbAlwaysOnTop) {
+            setAlwaysOnTop(cbAlwaysOnTop.isSelected());
+        }
+        else {
             throw new RuntimeException("Unknown source: " + source);
         }
     }

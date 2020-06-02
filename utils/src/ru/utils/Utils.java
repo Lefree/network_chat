@@ -1,4 +1,4 @@
-package practice.java.utils;
+package ru.utils;
 
 import java.io.File;
 import java.io.FileOutputStream;
