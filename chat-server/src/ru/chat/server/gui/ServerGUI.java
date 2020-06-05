@@ -1,21 +1,24 @@
 package ru.chat.server.gui;
 
 import ru.chat.server.core.Server;
+import ru.chat.server.core.ServerListener;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-public class ServerGUI extends JFrame implements ActionListener, Thread.UncaughtExceptionHandler {
-    private static final int POS_X = 1000;
+public class ServerGUI extends JFrame implements ActionListener, Thread.UncaughtExceptionHandler, ServerListener {
+    private static final int POS_X = 800;
     private static final int POS_Y = 550;
-    private static final int WIDTH = 200;
-    private static final int HEIGHT = 100;
+    private static final int WIDTH = 600;
+    private static final int HEIGHT = 300;
 
-    private final Server server = new Server();
+    private final Server server = new Server(this);
     private final JButton btnStart = new JButton("Start");
     private final JButton btnStop = new JButton("Stop");
+    private final JPanel panelTop = new JPanel(new GridLayout(1, 2));
+    private final JTextArea log = new JTextArea();
 
     private ServerGUI() {
         Thread.setDefaultUncaughtExceptionHandler(this);
@@ -24,12 +27,18 @@ public class ServerGUI extends JFrame implements ActionListener, Thread.Uncaught
         setResizable(false);
         setTitle("Server");
         setAlwaysOnTop(true);
-        setLayout(new GridLayout(1, 2));
+        log.setEditable(false);
+        log.setLineWrap(true);
+        JScrollPane scrollLog = new JScrollPane(log);
+
         btnStart.addActionListener(this);
         btnStop.addActionListener(this);
 
-        add(btnStart);
-        add(btnStop);
+        panelTop.add(btnStart);
+        panelTop.add(btnStop);
+        add(panelTop, BorderLayout.NORTH);
+        add(scrollLog, BorderLayout.CENTER);
+
         setVisible(true);
     }
     public static void main(String[] args) {
@@ -64,5 +73,15 @@ public class ServerGUI extends JFrame implements ActionListener, Thread.Uncaught
                 throwable.getMessage(), ste[0]);
         JOptionPane.showMessageDialog(this, msg, "Exception", JOptionPane.ERROR_MESSAGE);
         System.exit(1);
+    }
+
+    @Override
+    public void onServerMessage(String msg) {
+        SwingUtilities.invokeLater(new Runnable() {
+           @Override
+           public void run() {
+            log.append(String.format("%s\n", msg));
+           }
+       });
     }
 }

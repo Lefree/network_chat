@@ -1,5 +1,6 @@
 package ru.chat.client;
 
+import ru.chat.library.Library;
 import ru.network.SocketThread;
 import ru.network.SocketThreadListener;
 
@@ -35,7 +36,7 @@ public class Chat implements SocketThreadListener, ChatListener, Thread.Uncaught
         activeView.setVisible(true);
     }
 
-    protected boolean connect(String host, int port, String username) {
+    protected boolean connect(String host, int port) {
         try {
             socket = new Socket(host, port);
             socketThread = new SocketThread("Client", this, socket);
@@ -60,17 +61,29 @@ public class Chat implements SocketThreadListener, ChatListener, Thread.Uncaught
 
     @Override
     public void onReceiveString(SocketThread thread, Socket socket, String msg) {
-        chatView.putMessage(msg);
+        String[] arrFromMsg = msg.split(Library.DELIMITER);
+        String msgToLog = msg;
+        switch (arrFromMsg[0]) {
+            case Library.AUTH_ACCEPT:
+                msgToLog = arrFromMsg[1] + " joined to chat\n";
+                break;
+            case Library.MSG_FORMAT_ERROR:
+                msgToLog = "Incorrect message: " + arrFromMsg[1] + "\n";
+                break;
+        }
+        chatView.putMessage(msgToLog);
     }
 
     @Override
     public void onSocketException(SocketThread thread, Throwable throwable) {
-
+        thread.close();
     }
 
     @Override
     public void onSocketReady(SocketThread thread, Socket socket) {
-
+        String login = loginView.getLogin();
+        String password = loginView.getPassword();
+        thread.sendMessage(Library.getAuthRequest(login, password));
     }
 
     @Override
@@ -80,8 +93,8 @@ public class Chat implements SocketThreadListener, ChatListener, Thread.Uncaught
     }
 
     @Override
-    public void onAuthorize(String host, int port, String username) {
-        connect(host, port, username);
+    public void onAuthorize(String host, int port) {
+        connect(host, port);
     }
 
     @Override

@@ -51,12 +51,20 @@ public class LoginView extends JFrame implements ActionListener {
         setVisible(true);
     }
 
+    protected String getLogin() {
+        return tfLogin.getText();
+    }
+
+    protected String getPassword() {
+        return String.valueOf(tfPassword.getPassword());
+    }
+
     @Override
     public void actionPerformed(ActionEvent actionEvent) {
         Object source = actionEvent.getSource();
         if (source == btnLogin) {
             listener.onAuthorize(tfIPAddress.getText(),
-                    Integer.parseInt(tfPort.getText()), tfLogin.getText());
+                    Integer.parseInt(tfPort.getText()));
         }
         else if (source == cbAlwaysOnTop) {
             setAlwaysOnTop(cbAlwaysOnTop.isSelected());
