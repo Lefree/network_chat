@@ -5,4 +5,5 @@ public interface ChatListener {
     public void onAuthorize(String host, int port);
     public void onDisconnect();
     public void onReadyToSendMsg(String msg);
+    public void onUpdateNickname(String nickname);
 }

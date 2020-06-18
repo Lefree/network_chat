@@ -17,12 +17,16 @@ public class ChatView extends JFrame implements ActionListener {
 
     private final JTextArea log = new JTextArea();
 
+    private final JPanel nickNamePanel = new JPanel(new GridLayout(1, 3));
+    private final JLabel updateNicknameLabel = new JLabel("Update nick");
+    private final JTextField nickname = new JTextField(new String());
+    private final JButton updateNickname = new JButton("Change");
     private final JPanel panelBottom = new JPanel(new BorderLayout());
     private final JButton btnDisconnect = new JButton("Disconnect");
     private final JTextField tfMessage = new JTextField();
     private final JButton btnSend = new JButton("Send");
 
-    private final JList<String> userList = new JList<>();
+    protected final JList<String> userList = new JList<>();
     ChatListener listener;
 
     protected ChatView(ChatListener listener) {
@@ -34,20 +38,24 @@ public class ChatView extends JFrame implements ActionListener {
         log.setEditable(false);
         JScrollPane scrollog = new JScrollPane(log);
         JScrollPane scrollUser = new JScrollPane(userList);
-        String[] users = {"user1", "user2", "user3", "user4", "user5",
-            "user_with_an_exceptionally_long_name_in_this_chat"};
-        userList.setListData(users);
+        userList.setListData(new String[0]);
         scrollUser.setPreferredSize(new Dimension(100, 0));
         btnSend.addActionListener(this);
         btnSend.setBackground(Color.green);
         btnDisconnect.setBackground(Color.RED);
         tfMessage.addActionListener(this);
         btnDisconnect.addActionListener(this);
+        updateNickname.addActionListener(this);
+
+        nickNamePanel.add(updateNicknameLabel);
+        nickNamePanel.add(nickname);
+        nickNamePanel.add(updateNickname);
 
         panelBottom.add(btnDisconnect, BorderLayout.WEST);
         panelBottom.add(tfMessage, BorderLayout.CENTER);
         panelBottom.add(btnSend, BorderLayout.EAST);
 
+        add(nickNamePanel, BorderLayout.NORTH);
         add(scrollog, BorderLayout.CENTER);
         add(scrollUser, BorderLayout.EAST);
         add(panelBottom, BorderLayout.SOUTH);
@@ -64,6 +72,9 @@ public class ChatView extends JFrame implements ActionListener {
             tfMessage.grabFocus();
         } else if (source == btnDisconnect) {
             listener.onDisconnect();
+        } else if (source == updateNickname) {
+            listener.onUpdateNickname(nickname.getText());
+            nickname.setText("");
         }
         else {
             throw new RuntimeException("Unknown source: " + source);

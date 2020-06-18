@@ -39,4 +39,24 @@ public class Database {
         }
         return null;
     }
+
+    synchronized static boolean changeNickname(String oldNickname, String newNickname) {
+        try {
+            ResultSet rs = statement.executeQuery(String.format("" +
+                    "SELECT" +
+                    "   *" +
+                    "   FROM users" +
+                    "   WHERE nickname='%s'", newNickname));
+            if (!rs.next()) {
+                statement.executeUpdate(String.format("" +
+                        "UPDATE users" +
+                        "   SET nickname='%s'" +
+                        "   WHERE nickname='%s'", newNickname, oldNickname));
+                return true;
+            }
+        } catch (SQLException throwables) {
+            throw new RuntimeException(throwables);
+        }
+        return false;
+    }
 }

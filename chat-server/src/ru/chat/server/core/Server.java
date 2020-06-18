@@ -9,6 +9,7 @@ import ru.network.SocketThreadListener;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Vector;
 
@@ -56,6 +57,8 @@ public class Server implements ServerSocketThreadListener, SocketThreadListener 
     public void onServerStop(ServerSocketThread thread) {
         putLog("Server stopped");
         Database.disconnect();
+        for (SocketThread client : connectedUsers)
+            client.close();
     }
 
     @Override
@@ -64,7 +67,7 @@ public class Server implements ServerSocketThreadListener, SocketThreadListener 
     }
 
     @Override
-    public void onSocketAccepted(ServerSocketThread thread, ServerSocket server, Socket socket) {
+    public synchronized void onSocketAccepted(ServerSocketThread thread, ServerSocket server, Socket socket) {
         putLog("Client connected");
         String name = "Socket thread " + socket.getInetAddress() + ":" + socket.getPort();
         new ClientThread(name, this, socket);
@@ -90,7 +93,7 @@ public class Server implements ServerSocketThreadListener, SocketThreadListener 
     }
 
     @Override
-    public void onReceiveString(SocketThread thread, Socket socket, String msg) {
+    public synchronized void onReceiveString(SocketThread thread, Socket socket, String msg) {
         ClientThread client = (ClientThread) thread;
         if (client.isAuthorized()) {
             handleAuthMessage(client, msg);
@@ -99,49 +102,92 @@ public class Server implements ServerSocketThreadListener, SocketThreadListener 
         }
     }
 
-    private void handleNotAuthMessage(ClientThread client, String msg) {
+    private void handleNotAuthMessage(ClientThread newClient, String msg) {
         String[] arr = msg.split(Library.DELIMITER);
         if (arr.length != 3 || !arr[0].equals(Library.AUTH_REQUEST)) {
-            client.msgFormatError(msg);
+            newClient.msgFormatError(msg);
             return;
         }
         String login = arr[1];
         String password = arr[2];
         String nickname = Database.getNickname(login, password);
         if (nickname == null) {
-            client.authFail();
+            newClient.authFail();
             return;
+        } else {
+            ClientThread oldClient = findClientByNickname(nickname);
+            newClient.authAccept(nickname);
+            if (oldClient != null) {
+                oldClient.close();
+                connectedUsers.remove(oldClient);
+            }
         }
-        client.authAccept(nickname);
+        sendToAllAuthorizedClients(newClient, Library.getUsersList(getConnectedNicknames()));
+
+
+    }
+
+    private synchronized String getConnectedNicknames() {
+        String users = "";
+        for (SocketThread th: connectedUsers) {
+            if (((ClientThread) th).getNickname() != null)
+                users += ((ClientThread) th).getNickname() + Library.DELIMITER;
+        }
+        return users;
+    }
+    
+    private synchronized ClientThread findClientByNickname(String nickname) {
+        for(SocketThread client : connectedUsers) {
+            if ( ((ClientThread)client).isAuthorized()
+                && ((ClientThread)client).getNickname().equals(nickname))
+                return (ClientThread) client;
+        }
+        return null;
     }
 
     private void handleAuthMessage(ClientThread client, String msg) {
-        sendToAllAuthorizedClients(client, msg);
+        String[] arr = msg.split(Library.DELIMITER);
+        String msgType = arr[0];
+        System.out.println(msgType);
+        switch (msgType) {
+            case Library.CLIENT_MSG_BROADCAST:
+                sendToAllAuthorizedClients(client, Library.getTypeBroadcast(client.getNickname(),arr[1]));
+                break;
+            case Library.CLIENT_CHANGE_NAME:
+                if (Database.changeNickname(client.getNickname(), arr[1])) {
+                    client.authAccept(arr[1]);
+                    sendToAllAuthorizedClients(client, Library.getUsersList(getConnectedNicknames()));
+                }
+                break;
+            default:
+                client.sendMessage(Library.getMsgFormatError(msg));
+        }
     }
 
     private void sendToAllAuthorizedClients(ClientThread thread, String msg) {
         for(SocketThread th : connectedUsers) {
             ClientThread clientThread = (ClientThread) th;
             if (clientThread.isAuthorized())
-                clientThread.sendMessage(String.format("%s:\n%s\n", thread.getNickname(), msg));
+                clientThread.sendMessage(msg);
         }
     }
 
     @Override
-    public void onSocketException(SocketThread thread, Throwable throwable) {
+    public synchronized void onSocketException(SocketThread thread, Throwable throwable) {
         throwable.printStackTrace();
         thread.close();
     }
 
     @Override
-    public void onSocketReady(SocketThread thread, Socket socket) {
+    public synchronized void onSocketReady(SocketThread thread, Socket socket) {
         connectedUsers.add(thread);
         putLog("Client ready to chat");
     }
 
     @Override
-    public void onSocketStop(SocketThread thread) {
+    public synchronized void onSocketStop(SocketThread thread) {
         connectedUsers.remove(thread);
+        sendToAllAuthorizedClients((ClientThread) thread, Library.getUsersList(getConnectedNicknames()));
         putLog("Client disconnected");
     }
 }

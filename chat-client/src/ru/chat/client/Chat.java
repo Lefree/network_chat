@@ -7,11 +7,13 @@ import ru.network.SocketThreadListener;
 import javax.swing.*;
 import java.io.IOException;
 import java.net.Socket;
+import java.util.Arrays;
 
 public class Chat implements SocketThreadListener, ChatListener, Thread.UncaughtExceptionHandler {
     static LoginView loginView;
     static ChatView chatView;
     static JFrame activeView;
+    private static final String WINDOW_TITLE = "Chat";
 
     SocketThread socketThread;
     Socket socket;
@@ -20,6 +22,7 @@ public class Chat implements SocketThreadListener, ChatListener, Thread.Uncaught
         Thread.setDefaultUncaughtExceptionHandler(this);
         loginView = new LoginView(this);
         activeView = loginView;
+        activeView.setTitle(WINDOW_TITLE);
     }
     public static void main(String[] args) {
         SwingUtilities.invokeLater(new Runnable() {
@@ -65,13 +68,22 @@ public class Chat implements SocketThreadListener, ChatListener, Thread.Uncaught
         String msgToLog = msg;
         switch (arrFromMsg[0]) {
             case Library.AUTH_ACCEPT:
+                activeView.setTitle(WINDOW_TITLE + ": " + arrFromMsg[1]);
                 msgToLog = arrFromMsg[1] + " joined to chat\n";
                 break;
             case Library.MSG_FORMAT_ERROR:
                 msgToLog = "Incorrect message: " + arrFromMsg[1] + "\n";
                 break;
+            case Library.TYPE_BROADCAST:
+                chatView.putMessage(String.format("%s:\n%s\n", arrFromMsg[2], arrFromMsg[3]));
+                break;
+            case Library.USERS_LIST:
+                String[] users = Arrays.copyOfRange(arrFromMsg, 1, arrFromMsg.length);
+                ((ChatView)activeView).userList.setListData(users);
+                return;
+            default:
+                throw new RuntimeException("Unknown msg type");
         }
-        chatView.putMessage(msgToLog);
     }
 
     @Override
@@ -89,6 +101,7 @@ public class Chat implements SocketThreadListener, ChatListener, Thread.Uncaught
     @Override
     public void onSocketStop(SocketThread thread) {
         setActiveView(loginView);
+        activeView.setTitle(WINDOW_TITLE);
 
     }
 
@@ -103,8 +116,13 @@ public class Chat implements SocketThreadListener, ChatListener, Thread.Uncaught
     }
 
     @Override
+    public void onUpdateNickname(String nickname) {
+        socketThread.sendMessage(Library.getClientChangeName(nickname));
+   }
+
+    @Override
     public void onReadyToSendMsg(String msg) {
-        socketThread.sendMessage(msg);
+        socketThread.sendMessage(Library.getClientMsgBroadcast(msg));
     }
 
     @Override
