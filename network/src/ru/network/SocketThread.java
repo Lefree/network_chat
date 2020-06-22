@@ -14,7 +14,6 @@ public class SocketThread extends Thread{
 
     public SocketThread(String name, SocketThreadListener listener, Socket socket) {
         super(name);
-        System.out.println(name);
         this.socket = socket;
         this.listener = listener;
         start();
