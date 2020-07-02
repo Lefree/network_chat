@@ -8,14 +8,10 @@ import ru.network.SocketThreadListener;
 
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Vector;
 
 public class Server implements ServerSocketThreadListener, SocketThreadListener {
 
-    final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd.MM.y HH:mm:ss");
     ServerSocketThread server;
     ServerListener listener;
     Vector<SocketThread> connectedUsers = new Vector<>();
@@ -148,7 +144,6 @@ public class Server implements ServerSocketThreadListener, SocketThreadListener 
     private void handleAuthMessage(ClientThread client, String msg) {
         String[] arr = msg.split(Library.DELIMITER);
         String msgType = arr[0];
-        System.out.println(msgType);
         switch (msgType) {
             case Library.CLIENT_MSG_BROADCAST:
                 sendToAllAuthorizedClients(client, Library.getTypeBroadcast(client.getNickname(),arr[1]));

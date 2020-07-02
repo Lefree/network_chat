@@ -2,6 +2,7 @@ package ru.chat.server.gui;
 
 import ru.chat.server.core.Server;
 import ru.chat.server.core.ServerListener;
+import ru.utils.Utils;
 
 import javax.swing.*;
 import java.awt.*;
@@ -80,7 +81,8 @@ public class ServerGUI extends JFrame implements ActionListener, Thread.Uncaught
         SwingUtilities.invokeLater(new Runnable() {
            @Override
            public void run() {
-            log.append(String.format("%s\n", msg));
+               String logMessage = Utils.prepareLogMessage("System", msg);
+               log.append(logMessage);
            }
        });
     }

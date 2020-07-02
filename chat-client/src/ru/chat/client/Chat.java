@@ -3,10 +3,12 @@ package ru.chat.client;
 import ru.chat.library.Library;
 import ru.network.SocketThread;
 import ru.network.SocketThreadListener;
+import ru.utils.Utils;
 
 import javax.swing.*;
 import java.io.IOException;
 import java.net.Socket;
+import java.nio.file.Paths;
 import java.util.Arrays;
 
 public class Chat implements SocketThreadListener, ChatListener, Thread.UncaughtExceptionHandler {
@@ -14,6 +16,10 @@ public class Chat implements SocketThreadListener, ChatListener, Thread.Uncaught
     static ChatView chatView;
     static JFrame activeView;
     private static final String WINDOW_TITLE = "Chat";
+    private static final String logPath = Paths.get(".").normalize().toAbsolutePath()
+            + "/log/history.log";
+    private static String chatLog;
+    private static final int LOG_MSG_COUNT = 100;
 
     SocketThread socketThread;
     Socket socket;
@@ -56,8 +62,15 @@ public class Chat implements SocketThreadListener, ChatListener, Thread.Uncaught
 
     @Override
     public void onSocketStart(SocketThread thread, Socket socket) {
-        if (chatView == null)
+        if (chatView == null) {
             chatView = new ChatView(this);
+            try {
+                chatLog = Utils.getLastLogs(logPath, LOG_MSG_COUNT);
+            } catch (IOException e) {
+                chatLog = new String();
+            }
+            chatView.log.append(chatLog);
+        }
         setActiveView(chatView);
 
     }
@@ -65,17 +78,19 @@ public class Chat implements SocketThreadListener, ChatListener, Thread.Uncaught
     @Override
     public void onReceiveString(SocketThread thread, Socket socket, String msg) {
         String[] arrFromMsg = msg.split(Library.DELIMITER);
-        String msgToLog = msg;
+        String msgToLog;
         switch (arrFromMsg[0]) {
             case Library.AUTH_ACCEPT:
                 activeView.setTitle(WINDOW_TITLE + ": " + arrFromMsg[1]);
-                msgToLog = arrFromMsg[1] + " joined to chat\n";
+                msgToLog = arrFromMsg[1] + " joined to chat";
+                putMessage("System", msgToLog);
                 break;
             case Library.MSG_FORMAT_ERROR:
-                msgToLog = "Incorrect message: " + arrFromMsg[1] + "\n";
+                msgToLog = "Incorrect message: " + arrFromMsg[1];
+                putMessage("System", msgToLog);
                 break;
             case Library.TYPE_BROADCAST:
-                chatView.putMessage(String.format("%s:\n%s\n", arrFromMsg[2], arrFromMsg[3]));
+                putMessage(arrFromMsg[2], arrFromMsg[3]);
                 break;
             case Library.USERS_LIST:
                 String[] users = Arrays.copyOfRange(arrFromMsg, 1, arrFromMsg.length);
@@ -135,5 +150,11 @@ public class Chat implements SocketThreadListener, ChatListener, Thread.Uncaught
                 throwable.getMessage(), ste[0]);
         JOptionPane.showMessageDialog(activeView, msg, "Exception", JOptionPane.ERROR_MESSAGE);
         System.exit(1);
+    }
+
+    public static void putMessage(String username, String msg) {
+        String logMessage = Utils.prepareLogMessage(username, msg);
+        Utils.logging(logPath, logMessage);
+        chatView.log.append(logMessage);
     }
 }
