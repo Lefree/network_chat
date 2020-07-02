@@ -78,10 +78,11 @@ public class ServerGUI extends JFrame implements ActionListener, Thread.Uncaught
 
     @Override
     public void onServerMessage(String msg) {
+        final String incomeMsg = msg;
         SwingUtilities.invokeLater(new Runnable() {
            @Override
            public void run() {
-               String logMessage = Utils.prepareLogMessage("System", msg);
+               String logMessage = Utils.prepareLogMessage("System", incomeMsg);
                log.append(logMessage);
            }
        });
