@@ -1,7 +1,5 @@
 package ru.chat.server.core;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import ru.chat.library.Library;
 import ru.network.ServerSocketThread;
 import ru.network.ServerSocketThreadListener;
@@ -12,13 +10,11 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Vector;
 
-
 public class Server implements ServerSocketThreadListener, SocketThreadListener {
 
     ServerSocketThread server;
     ServerListener listener;
     Vector<SocketThread> connectedUsers = new Vector<>();
-    private static final Logger LOGGER = LogManager.getLogger(Server.class);
 
     public Server(ServerListener listener) {
         this.listener = listener;
@@ -50,13 +46,11 @@ public class Server implements ServerSocketThreadListener, SocketThreadListener 
     @Override
     public void onServerStart(ServerSocketThread thread) {
         Database.connect();
-        LOGGER.info("Server started");
         putLog("Server started");
     }
 
     @Override
     public void onServerStop(ServerSocketThread thread) {
-        LOGGER.info("Server stopped");
         putLog("Server stopped");
         Database.disconnect();
         for (SocketThread client : connectedUsers)
@@ -70,7 +64,6 @@ public class Server implements ServerSocketThreadListener, SocketThreadListener 
 
     @Override
     public synchronized void onSocketAccepted(ServerSocketThread thread, ServerSocket server, Socket socket) {
-        LOGGER.info("Client connected");
         putLog("Client connected");
         String name = "Socket thread " + socket.getInetAddress() + ":" + socket.getPort();
         new ClientThread(name, this, socket);
@@ -78,7 +71,6 @@ public class Server implements ServerSocketThreadListener, SocketThreadListener 
 
     @Override
     public void onServerException(ServerSocketThread thread, Throwable throwable) {
-        LOGGER.error(throwable.getMessage());
         throwable.printStackTrace();
     }
 
@@ -126,20 +118,17 @@ public class Server implements ServerSocketThreadListener, SocketThreadListener 
                 connectedUsers.remove(oldClient);
             }
         }
-        sendToAllAuthorizedClients(newClient, Library.getUsersList(getConnectedNicknames()));
-
-
+        sendToAllAuthorizedClients(Library.getUsersList(getConnectedNicknames()));
     }
 
     private synchronized String getConnectedNicknames() {
-        String users = "";
-        for (SocketThread th: connectedUsers) {
-            if (((ClientThread) th).getNickname() != null)
-                users += ((ClientThread) th).getNickname() + Library.DELIMITER;
-        }
-        return users;
+        StringBuilder nicknamesArray = new StringBuilder();
+        connectedUsers.stream().filter(us -> ((ClientThread)us).getNickname() != null)
+            .forEach(us -> nicknamesArray.append(((ClientThread)us).getNickname()));
+        return String.join(Library.DELIMITER, nicknamesArray);
     }
-    
+
+    //TODO: Подумать над алгоритмом поиска в массиве, исключить перебор
     private synchronized ClientThread findClientByNickname(String nickname) {
         for(SocketThread client : connectedUsers) {
             if ( ((ClientThread)client).isAuthorized()
@@ -150,16 +139,16 @@ public class Server implements ServerSocketThreadListener, SocketThreadListener 
     }
 
     private void handleAuthMessage(ClientThread client, String msg) {
-        String[] arr = msg.split(Library.DELIMITER);
-        String msgType = arr[0];
+        String[] msgPartitions = msg.split(Library.DELIMITER);
+        String msgType = msgPartitions[0];
         switch (msgType) {
             case Library.CLIENT_MSG_BROADCAST:
-                sendToAllAuthorizedClients(client, Library.getTypeBroadcast(client.getNickname(),arr[1]));
+                sendToAllAuthorizedClients(Library.getTypeBroadcast(client.getNickname(),msgPartitions[1]));
                 break;
             case Library.CLIENT_CHANGE_NAME:
-                if (Database.changeNickname(client.getNickname(), arr[1])) {
-                    client.authAccept(arr[1]);
-                    sendToAllAuthorizedClients(client, Library.getUsersList(getConnectedNicknames()));
+                if (Database.changeNickname(client.getNickname(), msgPartitions[1])) {
+                    client.authAccept(msgPartitions[1]);
+                    sendToAllAuthorizedClients(Library.getUsersList(getConnectedNicknames()));
                 }
                 break;
             default:
@@ -167,12 +156,10 @@ public class Server implements ServerSocketThreadListener, SocketThreadListener 
         }
     }
 
-    private void sendToAllAuthorizedClients(ClientThread thread, String msg) {
-        for(SocketThread th : connectedUsers) {
-            ClientThread clientThread = (ClientThread) th;
-            if (clientThread.isAuthorized())
-                clientThread.sendMessage(msg);
-        }
+    private void sendToAllAuthorizedClients(String msg) {
+        connectedUsers.stream()
+                .filter(user -> ((ClientThread)user).isAuthorized())
+                .forEach(user -> user.sendMessage(msg));
     }
 
     @Override
@@ -190,7 +177,7 @@ public class Server implements ServerSocketThreadListener, SocketThreadListener 
     @Override
     public synchronized void onSocketStop(SocketThread thread) {
         connectedUsers.remove(thread);
-        sendToAllAuthorizedClients((ClientThread) thread, Library.getUsersList(getConnectedNicknames()));
+        sendToAllAuthorizedClients(Library.getUsersList(getConnectedNicknames()));
         putLog("Client disconnected");
     }
 }
